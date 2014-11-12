@@ -17,29 +17,36 @@ Examples
 Because of laziness, pressure or just ignorance, php developers using ADOdb are making such mistakes.
 
 Vulnerabe SQL query:
-
-`$dbConn->GetRow("SELECT * FROM users WHERE id = $user_id")`
-
-Correct SQL query:
-
-`$dbConn->GetRow("SELECT * FROM users WHERE id = ?", array(‘$user_id’))`
-
-
-Vulnerable SQL Query
 ```php
-$ids = join(',', $ids)`
-$dbConn->GetAll("SELECT * FROM campaigns WHERE id IN ({$ids})")`
+$dbConn->GetRow("SELECT * FROM users WHERE id = $user_id");
 ```
 
 Correct SQL query:
-`$dbConn->GetAll('SELECT * FROM campaigns WHERE FIND_IN_SET (id, ' . Connections::$dbConn->Param('') . ')', array(join(',', $ids))`
+```php
+$dbConn->GetRow("SELECT * FROM users WHERE id = ?", array(‘$user_id’));
+```
+
+Vulnerable SQL Query
+```php
+$ids = join(',', $ids);
+$dbConn->GetAll("SELECT * FROM campaigns WHERE id IN ({$ids})");
+```
+
+Correct SQL query:
+```php
+$dbConn->GetAll('SELECT * FROM campaigns WHERE FIND_IN_SET (id, ' . Connections::$dbConn->Param('') . ')', array(join(',', $ids));
+```
 
 Usage
 =====
 Recursively scan directory with php files:
 
-`php php-reaper -d directory_with_php_files`
+```bash
+php php-reaper -d directory_with_php_files
+```
 
 or scan a single file:
 
-`php php-reaper -f single_file.php`
+```bash
+php php-reaper -f single_file.php
+```
