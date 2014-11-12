@@ -18,11 +18,19 @@ Because of laziness, pressure or just ignorance, php developers using ADOdb are 
 
 Vulnerabe SQL query:
 
-`$dbConn->GetRow(“SELECT * FROM users WHERE id = $user_id”)`
+`$dbConn->GetRow("SELECT * FROM users WHERE id = $user_id")`
 
 Correct SQL query:
 
-`$dbConn->GetRow(“SELECT * FROM users WHERE id = ?”, array(‘$user_id’))`
+`$dbConn->GetRow("SELECT * FROM users WHERE id = ?", array(‘$user_id’))`
+
+
+Vulnerable SQL Query
+`$ids = join(',', $ids)`
+`$dbConn->GetAll("SELECT * FROM campaigns WHERE id IN ({$ids})")`
+
+Correct SQL query:
+`$dbConn->GetAll('SELECT * FROM campaigns WHERE FIND_IN_SET (id, ' . Connections::$dbConn->Param('') . ')', array(join(',', $ids))`
 
 Usage
 =====
