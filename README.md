@@ -9,15 +9,19 @@ Running PHP-Reaper is far less time consuming than running full fledged automate
 Examples
 ========
 Vulnerabe SQL query:
+
 `$dbConn->GetRow(“SELECT * FROM users WHERE id = $user_id”)`
 
 Correct SQL query:
+
 `$dbConn->GetRow(“SELECT * FROM users WHERE id = ?”, array(‘$user_id’))`
 
 Usage
 =====
 Recursively scan directory with php files:
+
 `php-reaper -d directory_with_php_files`
 
 or scan a single file:
+
 `php-reaper -f single_file.php`
