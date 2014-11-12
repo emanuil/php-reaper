@@ -26,8 +26,10 @@ Correct SQL query:
 
 
 Vulnerable SQL Query
-`$ids = join(',', $ids)`
-`$dbConn->GetAll("SELECT * FROM campaigns WHERE id IN ({$ids})")`
+```php
+$ids = join(',', $ids)`
+$dbConn->GetAll("SELECT * FROM campaigns WHERE id IN ({$ids})")`
+```
 
 Correct SQL query:
 `$dbConn->GetAll('SELECT * FROM campaigns WHERE FIND_IN_SET (id, ' . Connections::$dbConn->Param('') . ')', array(join(',', $ids))`
