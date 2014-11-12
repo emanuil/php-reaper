@@ -26,7 +26,7 @@ Correct SQL query:
 $dbConn->GetRow("SELECT * FROM users WHERE id = ?", array(‘$user_id’));
 ```
 
-Vulnerable SQL Query
+Vulnerable SQL Query:
 ```php
 $ids = join(',', $ids);
 $dbConn->GetAll("SELECT * FROM campaigns WHERE id IN ({$ids})");
@@ -34,7 +34,7 @@ $dbConn->GetAll("SELECT * FROM campaigns WHERE id IN ({$ids})");
 
 Correct SQL query:
 ```php
-$dbConn->GetAll('SELECT * FROM campaigns WHERE FIND_IN_SET (id, ' . Connections::$dbConn->Param('') . ')', array(join(',', $ids)));
+$dbConn->GetAll('SELECT * FROM campaigns WHERE FIND_IN_SET (id, ' . $dbConn->Param('') . ')', array(join(',', $ids)));
 ```
 
 Usage
