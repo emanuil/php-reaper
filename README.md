@@ -10,6 +10,9 @@ You'll get the most out of PHP-Reaper if you run it on every commit. It's made t
 
 Examples
 ========
+
+Because of laziness, pressure or just ignorance, php developers using ADOdb are making such mistakes.
+
 Vulnerabe SQL query:
 
 `$dbConn->GetRow(“SELECT * FROM users WHERE id = $user_id”)`
