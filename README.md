@@ -34,7 +34,7 @@ $dbConn->GetAll("SELECT * FROM campaigns WHERE id IN ({$ids})");
 
 Correct SQL query:
 ```php
-$dbConn->GetAll('SELECT * FROM campaigns WHERE FIND_IN_SET (id, ' . Connections::$dbConn->Param('') . ')', array(join(',', $ids));
+$dbConn->GetAll('SELECT * FROM campaigns WHERE FIND_IN_SET (id, ' . Connections::$dbConn->Param('') . ')', array(join(',', $ids)));
 ```
 
 Usage
