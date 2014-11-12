@@ -28,8 +28,8 @@ Usage
 =====
 Recursively scan directory with php files:
 
-`php-reaper -d directory_with_php_files`
+`php php-reaper -d directory_with_php_files`
 
 or scan a single file:
 
-`php-reaper -f single_file.php`
+`php php-reaper -f single_file.php`
