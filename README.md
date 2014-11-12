@@ -16,23 +16,23 @@ Examples
 
 Because of laziness, pressure or just ignorance, php developers using ADOdb are making such mistakes.
 
-Vulnerabe SQL query:
+Vulnerabe SQL query #1:
 ```php
 $dbConn->GetRow("SELECT * FROM users WHERE id = $user_id");
 ```
 
-Correct SQL query:
+Correct SQL query #1:
 ```php
 $dbConn->GetRow("SELECT * FROM users WHERE id = ?", array(‘$user_id’));
 ```
 
-Vulnerable SQL Query:
+Vulnerable SQL Query #2:
 ```php
 $ids = join(',', $ids);
 $dbConn->GetAll("SELECT * FROM campaigns WHERE id IN ({$ids})");
 ```
 
-Correct SQL query:
+Correct SQL query #2:
 ```php
 $dbConn->GetAll('SELECT * FROM campaigns WHERE FIND_IN_SET (id, ' . $dbConn->Param('') . ')', array(join(',', $ids)));
 ```
