@@ -59,3 +59,7 @@ The tests are located in [tests](https://github.com/emanuil/php-reaper/tree/mast
 phpunit .
 ```
 If you extend this tool, make sure that the tests are passing before submitting pull request. Better yet, add new test files and unit tests. Look at [example files](https://github.com/emanuil/php-reaper/tree/master/tests/SecurityChecks/exampleFiles) directory, what types of SQL Injections are detected.
+
+Continuous Integration
+======================
+PHP-Reaper is CI friendly. On error it will exit with -1 status, so it's easy to hook it to your CI jobs.
