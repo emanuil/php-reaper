@@ -58,3 +58,4 @@ The tests are located in [tests](https://github.com/emanuil/php-reaper/tree/mast
 ```bash
 phpunit .
 ```
+If you extend this tool, make sure that the tests are passing before submitting pull request. Better yet, add new test files and unit tests. Look at [example files](https://github.com/emanuil/php-reaper/tree/master/tests/SecurityChecks/exampleFiles) directory, what types of SQL Injections are detected.
