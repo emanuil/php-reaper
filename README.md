@@ -50,3 +50,11 @@ or scan a single file:
 ```bash
 php php-reaper -f single_file.php
 ```
+
+
+Tests
+=====
+The tests are located in [tests](https://github.com/emanuil/php-reaper/tree/master/tests) directory. To run them, once in tests directory, type:
+```bash
+phpunit .
+```
