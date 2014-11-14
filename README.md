@@ -63,3 +63,13 @@ If you extend this tool, make sure that the tests are passing before submitting 
 Continuous Integration
 ======================
 PHP-Reaper is CI friendly. On error it will exit with -1 status, so it's easy to hook it to your CI jobs.
+
+
+Exclude from warnings
+======================
+You can ignore the warnings by PHP-Reaper, if you're absolutely sure that the code does not contain SQL Injection. Comment the line above the ADOdb function with:
+```php
+// safesql
+$result_set = $dbConn->getAll('SELECT * FROM ' . Contracts_Contracts::DB_TABLE);
+```
+You need to be absolutly sure that `Contracts_Contracts::DB_TABLE` can not be controller by an attacker.
