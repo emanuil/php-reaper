@@ -75,7 +75,7 @@ $result_set = $dbConn->getAll('SELECT * FROM ' . Contracts_Contracts::DB_TABLE);
 You need to be absolutely sure `Contracts_Contracts::DB_TABLE` cannot be controller by an attacker.
 
 
-Dangerous Methods
+Dangerous ADOdb Methods
 =================
 The following [ADOdb](http://adodb.sourceforge.net) methods are considered dangerous and are scanned for potential SQL
 injections: getone(), getrow(), getall(), getcol(), getassoc(), execute(), replace(). Note that autoexecute() is immune,
