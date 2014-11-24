@@ -77,4 +77,9 @@ You need to be absolutely sure `Contracts_Contracts::DB_TABLE` cannot be control
 
 Dangerous Methods
 =================
-The following [ADOdb](http://adodb.sourceforge.net) methods are considered dangerous and are scanned for potential SQL injections: getone(), getrow(), getall(), getcol(), getassoc(), execute(), replace(). Note that autoexecute() is immune, because it automatically escapes all the parameters.
+The following [ADOdb](http://adodb.sourceforge.net) methods are considered dangerous and are scanned for potential SQL
+injections: getone(), getrow(), getall(), getcol(), getassoc(), execute(), replace(). Note that autoexecute() is immune,
+because it automatically escapes all the parameters. If you have methods in your code base with the same names e.g.
+execute() - non ADOdb method, you may see false positives. The solution is to rename your methods to be with names 
+different than the default ADODb methods - e.g. executeTask(). PHP-Reaper is written in such a way because PHP is pretty
+dynamic and static analysis cannot reliably tell us the class of the instantiated object. 
