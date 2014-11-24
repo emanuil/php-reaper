@@ -16,7 +16,7 @@ Examples
 
 Because of laziness, pressure or just ignorance, php developers using ADOdb are making such mistakes.
 
-Vulnerabe SQL query #1:
+Vulnerable SQL query #1:
 ```php
 $dbConn->GetRow("SELECT * FROM users WHERE id = $user_id");
 ```
@@ -72,4 +72,9 @@ You can ignore the warnings by PHP-Reaper, if you're absolutely sure that the co
 // safesql
 $result_set = $dbConn->getAll('SELECT * FROM ' . Contracts_Contracts::DB_TABLE);
 ```
-You need to be absolutly sure that `Contracts_Contracts::DB_TABLE` can not be controller by an attacker.
+You need to be absolutely sure `Contracts_Contracts::DB_TABLE` cannot be controller by an attacker.
+
+
+Dangerous Methods
+=================
+The following [ADOdb](http://adodb.sourceforge.net) methods are considered dangerous and are scanned for potential SQL injections: getone(), getrow(), getall(), getcol(), getassoc(), execute(), replace(). Note that autoexecute() is immune, because it automatically escapes all the parameters.
