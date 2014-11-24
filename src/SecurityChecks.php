@@ -167,12 +167,7 @@ class SecurityChecks {
             ) {
 
                 $objectToBeInvestigated = $methodStatement;
-
-                if(empty($objectToBeInvestigated->args[0])) {
-                    return false;
-                }
-
-                $this->checkTheArgument($methodStatement, $objectToBeInvestigated);
+                return $this->investigateObject($methodStatement, $objectToBeInvestigated);
             }
 
 
@@ -181,16 +176,7 @@ class SecurityChecks {
             ) {
 
                 $objectToBeInvestigated = $methodStatement->expr;
-
-                // this is in case we have a method with the same name as the ADO_DB ones
-                // e.g. execute() and its not called with any arguments
-                // think of a better way how to distinguish between ADO_DB and non ADO_DB methods with
-                // the same name
-                if(empty($objectToBeInvestigated->args[0])) {
-                    return false;
-                }
-
-                $this->checkTheArgument($methodStatement, $objectToBeInvestigated);
+                return $this->investigateObject($methodStatement, $objectToBeInvestigated);
             }
 
 
@@ -435,5 +421,18 @@ class SecurityChecks {
         } else {
             exit(0);
         }
+    }
+
+    private function investigateObject($methodStatement, $objectToBeInvestigated)
+    {
+        // this is in case we have a method with the same name as the ADO_DB ones
+        // e.g. execute() and its not called with any arguments
+        // think of a better way how to distinguish between ADO_DB and non ADO_DB methods with
+        // the same name
+        if (empty($objectToBeInvestigated->args[0])) {
+            return false;
+        }
+
+        $this->checkTheArgument($methodStatement, $objectToBeInvestigated);
     }
 }
