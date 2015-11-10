@@ -10,8 +10,12 @@ use PhpParser\Node\Expr;
 
 class NameResolverTest extends \PHPUnit_Framework_TestCase
 {
+    private function canonicalize($string) {
+        return str_replace("\r\n", "\n", $string);
+    }
+
     /**
-     * @covers NameResolver
+     * @covers PhpParser\NodeVisitor\NameResolver
      */
     public function testResolveNames() {
         $code = <<<'EOC'
@@ -133,24 +137,35 @@ EOC;
         $stmts = $parser->parse($code);
         $stmts = $traverser->traverse($stmts);
 
-        $this->assertEquals($expectedCode, $prettyPrinter->prettyPrint($stmts));
+        $this->assertSame(
+            $this->canonicalize($expectedCode),
+            $prettyPrinter->prettyPrint($stmts)
+        );
     }
 
     /**
-     * @covers NameResolver
+     * @covers PhpParser\NodeVisitor\NameResolver
      */
     public function testResolveLocations() {
         $code = <<<'EOC'
 <?php
 namespace NS;
 
-class A extends B implements C {
-    use A;
+class A extends B implements C, D {
+    use E, F, G {
+        f as private g;
+        E::h as i;
+        E::j insteadof F, G;
+    }
 }
 
-interface A extends C {
-    public function a(A $a);
+interface A extends C, D {
+    public function a(A $a) : A;
 }
+
+function fn() : A {}
+function fn2() : array {}
+function() : A {};
 
 A::b();
 A::$b;
@@ -170,14 +185,26 @@ EOC;
         $expectedCode = <<<'EOC'
 namespace NS;
 
-class A extends \NS\B implements \NS\C
+class A extends \NS\B implements \NS\C, \NS\D
 {
-    use \NS\A;
+    use \NS\E, \NS\F, \NS\G {
+        f as private g;
+        \NS\E::h as i;
+        \NS\E::j insteadof \NS\F, \NS\G;
+    }
 }
-interface A extends \NS\C
+interface A extends \NS\C, \NS\D
 {
-    public function a(\NS\A $a);
+    public function a(\NS\A $a) : \NS\A;
 }
+function fn() : \NS\A
+{
+}
+function fn2() : array
+{
+}
+function () : \NS\A {
+};
 \NS\A::b();
 \NS\A::$b;
 \NS\A::B;
@@ -200,7 +227,10 @@ EOC;
         $stmts = $parser->parse($code);
         $stmts = $traverser->traverse($stmts);
 
-        $this->assertEquals($expectedCode, $prettyPrinter->prettyPrint($stmts));
+        $this->assertSame(
+            $this->canonicalize($expectedCode),
+            $prettyPrinter->prettyPrint($stmts)
+        );
     }
 
     public function testNoResolveSpecialName() {
@@ -225,8 +255,9 @@ EOC;
             new Stmt\Interface_('B'),
             new Stmt\Function_('C'),
             new Stmt\Const_(array(
-                new Node\Const_('D', new Node\Scalar\String('E'))
+                new Node\Const_('D', new Node\Scalar\String_('E'))
             )),
+            new Expr\New_(new Stmt\Class_(null)),
         ));
 
         $traverser = new PhpParser\NodeTraverser;
@@ -234,14 +265,16 @@ EOC;
 
         $stmts = $traverser->traverse($stmts);
 
-        $this->assertEquals('NS\\A', (string) $stmts[0]->stmts[0]->namespacedName);
-        $this->assertEquals('NS\\B', (string) $stmts[0]->stmts[1]->namespacedName);
-        $this->assertEquals('NS\\C', (string) $stmts[0]->stmts[2]->namespacedName);
-        $this->assertEquals('NS\\D', (string) $stmts[0]->stmts[3]->consts[0]->namespacedName);
-        $this->assertEquals('A',     (string) $stmts[1]->stmts[0]->namespacedName);
-        $this->assertEquals('B',     (string) $stmts[1]->stmts[1]->namespacedName);
-        $this->assertEquals('C',     (string) $stmts[1]->stmts[2]->namespacedName);
-        $this->assertEquals('D',     (string) $stmts[1]->stmts[3]->consts[0]->namespacedName);
+        $this->assertSame('NS\\A', (string) $stmts[0]->stmts[0]->namespacedName);
+        $this->assertSame('NS\\B', (string) $stmts[0]->stmts[1]->namespacedName);
+        $this->assertSame('NS\\C', (string) $stmts[0]->stmts[2]->namespacedName);
+        $this->assertSame('NS\\D', (string) $stmts[0]->stmts[3]->consts[0]->namespacedName);
+        $this->assertObjectNotHasAttribute('namespacedName', $stmts[0]->stmts[4]->class);
+        $this->assertSame('A',     (string) $stmts[1]->stmts[0]->namespacedName);
+        $this->assertSame('B',     (string) $stmts[1]->stmts[1]->namespacedName);
+        $this->assertSame('C',     (string) $stmts[1]->stmts[2]->namespacedName);
+        $this->assertSame('D',     (string) $stmts[1]->stmts[3]->consts[0]->namespacedName);
+        $this->assertObjectNotHasAttribute('namespacedName', $stmts[1]->stmts[4]->class);
     }
 
     public function testAddTraitNamespacedName() {
@@ -254,8 +287,8 @@ EOC;
 
         $stmts = $traverser->traverse($stmts);
 
-        $this->assertEquals('NS\\A', (string) $stmts[0]->stmts[0]->namespacedName);
-        $this->assertEquals('A',     (string) $stmts[1]->stmts[0]->namespacedName);
+        $this->assertSame('NS\\A', (string) $stmts[0]->stmts[0]->namespacedName);
+        $this->assertSame('A',     (string) $stmts[1]->stmts[0]->namespacedName);
     }
 
     /**
@@ -329,7 +362,7 @@ EOC;
         $stmts = $traverser->traverse($stmts);
         $stmt = $stmts[0];
 
-        $this->assertEquals(array('Bar', 'Baz'), $stmt->stmts[1]->expr->class->parts);
+        $this->assertSame(array('Bar', 'Baz'), $stmt->stmts[1]->expr->class->parts);
     }
 
     public function testSpecialClassNamesAreCaseInsensitive() {
@@ -358,8 +391,8 @@ EOC;
         $classStmt = $stmts[0];
         $methodStmt = $classStmt->stmts[0]->stmts[0];
 
-        $this->assertEquals('SELF', (string)$methodStmt->stmts[0]->class);
-        $this->assertEquals('PARENT', (string)$methodStmt->stmts[1]->class);
-        $this->assertEquals('STATIC', (string)$methodStmt->stmts[2]->class);
+        $this->assertSame('SELF', (string)$methodStmt->stmts[0]->class);
+        $this->assertSame('PARENT', (string)$methodStmt->stmts[1]->class);
+        $this->assertSame('STATIC', (string)$methodStmt->stmts[2]->class);
     }
 }

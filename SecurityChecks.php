@@ -86,7 +86,8 @@ class SecurityChecks {
                 }
 
                 if(is_object($methodStatement)
-                    && $methodStatement->var
+                    && property_exists($methodStatement, 'var')
+                    && property_exists($methodStatement->var, 'name')
                     && $methodStatement->var->name == $variableName) {
                     return $methodStatement;
                 }
@@ -167,16 +168,33 @@ class SecurityChecks {
             ) {
 
                 $objectToBeInvestigated = $methodStatement;
-                return $this->investigateObject($methodStatement, $objectToBeInvestigated);
+
+                if(empty($objectToBeInvestigated->args[0])) {
+                    return false;
+                }
+
+                $this->checkTheArgument($methodStatement, $objectToBeInvestigated);
             }
 
 
-            if ($methodStatement->getType() == 'Expr_Assign' && is_string($methodStatement->expr->name) &&
-                in_array(strtolower($methodStatement->expr->name), $this->dangerousFunctions)
+
+            if ($methodStatement->getType() == 'Expr_Assign'
+                && property_exists($methodStatement->expr, 'name')
+                && is_string($methodStatement->expr->name)
+                && in_array(strtolower($methodStatement->expr->name), $this->dangerousFunctions)
             ) {
 
                 $objectToBeInvestigated = $methodStatement->expr;
-                return $this->investigateObject($methodStatement, $objectToBeInvestigated);
+
+                // this is in case we have a method with the same name as the ADO_DB ones
+                // e.g. execute() and its not called with any arguments
+                // think of a better way how to distinguish between ADO_DB and non ADO_DB methods with
+                // the same name
+                if(empty($objectToBeInvestigated->args[0])) {
+                    return false;
+                }
+
+                $this->checkTheArgument($methodStatement, $objectToBeInvestigated);
             }
 
 
@@ -187,7 +205,7 @@ class SecurityChecks {
     private function mainCycle($classStatement)
     {
         if(is_object($classStatement)) {
-            if(is_array($classStatement->stmts)) {
+            if(property_exists($classStatement, 'stmts') && is_array($classStatement->stmts)) {
 
                 foreach ($classStatement->stmts as $methodStatement) {
 
@@ -220,6 +238,7 @@ class SecurityChecks {
 
     private function investigateVariable($methodStatement, $argumentName)
     {
+
         $variable = $this->findVariableByName($this->methodStatements, $argumentName, $methodStatement->getLine());
 
         // If we can't find the variable definition in the current method then flag this for manual review
@@ -227,7 +246,7 @@ class SecurityChecks {
             $this->result[] = $methodStatement->getLine();
 
         } //This is needed for constructions such as newSQL = oldSQL = "Vulnerable Query", and then newSQL is used as the first argument
-        elseif (is_object($variable->expr) && is_object($variable->expr->expr)) {
+        elseif (property_exists($variable, 'expr') && property_exists($variable->expr, 'expr')) {
 
             $this->checkForDoubleAssignment($methodStatement, $variable);
 
@@ -248,16 +267,34 @@ class SecurityChecks {
     {
         //the name and type of the first argument
         $argumentType = $objectToBeInvestigated->args[0]->value->getType();
-        $argumentName = $objectToBeInvestigated->args[0]->value->name;
+
 
         if ($argumentType == 'Expr_BinaryOp_Concat') {
-            if ((is_object($objectToBeInvestigated->args[0]->value->left->right)
-                    && $objectToBeInvestigated->args[0]->value->left->right->name != 'Param')
-                || $objectToBeInvestigated->args[0]->value->right->getType() == 'Expr_FuncCall'
-                || $objectToBeInvestigated->args[0]->value->right->getType() != 'Scalar_String'
-            ) {
+            if (
+                // this is a call to the Param() method which is safe
+                (property_exists($objectToBeInvestigated->args[0]->value->left, 'right') && $objectToBeInvestigated->args[0]->value->left->right->getType() == 'Expr_MethodCall' && $objectToBeInvestigated->args[0]->value->left->right->name != 'Param')
 
+                || (property_exists($objectToBeInvestigated->args[0]->value->left, 'right') && $objectToBeInvestigated->args[0]->value->left->right->getType() == 'Expr_ArrayDimFetch')
+
+                || ($objectToBeInvestigated->args[0]->value->right->getType() != 'Scalar_String' && $objectToBeInvestigated->args[0]->value->right->getType() != 'Expr_Cast_Int')
+
+
+            ) {
                 $this->result[] = $methodStatement->getLine();
+            }
+
+            if (property_exists($objectToBeInvestigated->args[0]->value->left, 'right')
+                && $objectToBeInvestigated->args[0]->value->left->right->getType() == 'Expr_Variable') {
+
+                $this->investigateVariable($methodStatement, $objectToBeInvestigated->args[0]->value->left->right->name);
+            }
+
+            if(property_exists($objectToBeInvestigated->args[0]->value->left, 'left') &&
+                property_exists($objectToBeInvestigated->args[0]->value->left->left, 'right') &&
+                $objectToBeInvestigated->args[0]->value->left->left->right->getType() == 'Expr_FuncCall') {
+                if($objectToBeInvestigated->args[0]->value->left->left->right->name->parts[0] != 'date') {
+                    $this->result[] = $methodStatement->getLine();
+                }
             }
         }
 
@@ -267,6 +304,7 @@ class SecurityChecks {
 
 
         if ($argumentType == 'Expr_Variable') {
+            $argumentName = $objectToBeInvestigated->args[0]->value->name;
             $this->investigateVariable($methodStatement, $argumentName);
         }
     }
@@ -283,16 +321,16 @@ class SecurityChecks {
         }
 
 
-        if ($methodStatement->cond->right) {
+        if (property_exists($methodStatement->cond, 'right')) {
             $this->checkExpressionOrAssign($methodStatement->cond->right);
         }
 
-        if ($methodStatement->cond->left) {
+        if (property_exists($methodStatement->cond, 'left')) {
             $this->checkExpressionOrAssign($methodStatement->cond->left);
         }
 
 
-        if (is_object($methodStatement->cond->left) && $methodStatement->cond->left->getType() == 'Expr_FuncCall') {
+        if (property_exists($methodStatement->cond, 'left') && $methodStatement->cond->left->getType() == 'Expr_FuncCall') {
 
             if ($methodStatement->cond->left->args) {
                 $this->checkExpressionOrAssign($methodStatement->cond->left->args[0]->value);
@@ -319,8 +357,8 @@ class SecurityChecks {
             $statements[] = $methodStatement->else->stmts;
         }
 
-        if (is_object($methodStatement->elseifs)) {
-            $statements[] = $methodStatement->elseifs->stmts;
+        if (!empty($methodStatement->elseifs[0])) {
+            $statements[] = $methodStatement->elseifs[0]->stmts;
         }
 
         if (isset($methodStatement->elseifs[0])) {
@@ -351,9 +389,8 @@ class SecurityChecks {
 
     private function checkConcatMethod($methodStatement, $variable)
     {
-        if ((is_object($variable->expr->left->right)
-                && $variable->expr->left->right->name != 'Param') || (!is_object($variable->expr->left->right)
-            )
+        if ((property_exists($variable->expr->left, 'right')
+                && $variable->expr->left->right->name != 'Param') || (!property_exists($variable->expr->left, 'right'))
         ) {
             $this->result[] = $methodStatement->getLine();
         }
@@ -394,7 +431,7 @@ class SecurityChecks {
     private function checkNonAssignAndMethodCallStatements($methodStatement)
     {
         // Drill deep down if there are more statements
-        if ($methodStatement->stmts) {
+        if (property_exists($methodStatement, 'stmts')) {
             $this->mainCycle($methodStatement);
         }
 
@@ -408,8 +445,11 @@ class SecurityChecks {
         }
 
         // The sql method is in the returned directly: e.g. return GetAll(...);
-        if (is_object($methodStatement->expr) && $methodStatement->getType() == 'Stmt_Return') {
-            $this->checkExpressionOrAssign($methodStatement->expr);
+        if (property_exists($methodStatement, 'expr') && $methodStatement->getType() == 'Stmt_Return') {
+            if(!$this->checkForSafeComments($methodStatement)) {
+                $this->checkExpressionOrAssign($methodStatement->expr);
+            }
+
         }
     }
 
@@ -421,18 +461,5 @@ class SecurityChecks {
         } else {
             exit(0);
         }
-    }
-
-    private function investigateObject($methodStatement, $objectToBeInvestigated)
-    {
-        // this is in case we have a method with the same name as the ADO_DB ones
-        // e.g. execute() and its not called with any arguments
-        // think of a better way how to distinguish between ADO_DB and non ADO_DB methods with
-        // the same name
-        if (empty($objectToBeInvestigated->args[0])) {
-            return false;
-        }
-
-        $this->checkTheArgument($methodStatement, $objectToBeInvestigated);
     }
 }

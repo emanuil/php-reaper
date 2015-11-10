@@ -4,11 +4,11 @@ namespace PhpParser\Node\Scalar;
 
 use PhpParser\Node\Scalar;
 
-/**
- * @property string $value String value
- */
-class String extends Scalar
+class String_ extends Scalar
 {
+    /** @var string String value */
+    public $value;
+
     protected static $replacements = array(
         '\\' => '\\',
         '$'  =>  '$',
@@ -27,15 +27,17 @@ class String extends Scalar
      * @param array  $attributes Additional attributes
      */
     public function __construct($value = '', array $attributes = array()) {
-        parent::__construct(
-            array(
-                'value' => $value
-            ),
-            $attributes
-        );
+        parent::__construct(null, $attributes);
+        $this->value = $value;
+    }
+
+    public function getSubNodeNames() {
+        return array('value');
     }
 
     /**
+     * @internal
+     *
      * Parses a string token.
      *
      * @param string $str String token content
@@ -60,6 +62,8 @@ class String extends Scalar
     }
 
     /**
+     * @internal
+     *
      * Parses escape sequences in strings (all string types apart from single quoted).
      *
      * @param string      $str   String without quotes
@@ -79,7 +83,7 @@ class String extends Scalar
         );
     }
 
-    public static function parseCallback($matches) {
+    private static function parseCallback($matches) {
         $str = $matches[1];
 
         if (isset(self::$replacements[$str])) {
@@ -92,6 +96,8 @@ class String extends Scalar
     }
 
     /**
+     * @internal
+     *
      * Parses a constant doc string.
      *
      * @param string $startToken Doc string start token content (<<<SMTHG)
@@ -101,7 +107,7 @@ class String extends Scalar
      */
     public static function parseDocString($startToken, $str) {
         // strip last newline (thanks tokenizer for sticking it into the string!)
-        $str = preg_replace('~(\r\n|\n|\r)$~', '', $str);
+        $str = preg_replace('~(\r\n|\n|\r)\z~', '', $str);
 
         // nowdoc string
         if (false !== strpos($startToken, '\'')) {

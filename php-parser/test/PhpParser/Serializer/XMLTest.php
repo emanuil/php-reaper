@@ -7,7 +7,7 @@ use PhpParser;
 class XMLTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @covers XML<extended>
+     * @covers PhpParser\Serializer\XML<extended>
      */
     public function testSerialize() {
         $code = <<<CODE
@@ -112,6 +112,9 @@ CODE;
      </node:Param>
     </scalar:array>
    </subNode:params>
+   <subNode:returnType>
+     <scalar:null/>
+   </subNode:returnType>
    <subNode:stmts>
     <scalar:array>
      <node:Stmt_Echo>

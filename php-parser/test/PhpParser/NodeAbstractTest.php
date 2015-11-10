@@ -2,9 +2,29 @@
 
 namespace PhpParser;
 
+class DummyNode extends NodeAbstract {
+    public $subNode1;
+    public $subNode2;
+
+    public function __construct($subNode1, $subNode2, $attributes) {
+        parent::__construct(null, $attributes);
+        $this->subNode1 = $subNode1;
+        $this->subNode2 = $subNode2;
+    }
+
+    public function getSubNodeNames() {
+        return array('subNode1', 'subNode2');
+    }
+
+    // This method is only overwritten because the node is located in an unusual namespace
+    public function getType() {
+        return 'Dummy';
+    }
+}
+
 class NodeAbstractTest extends \PHPUnit_Framework_TestCase
 {
-    public function testConstruct() {
+    public function provideNodes() {
         $attributes = array(
             'startLine' => 10,
             'comments'  => array(
@@ -13,34 +33,51 @@ class NodeAbstractTest extends \PHPUnit_Framework_TestCase
             ),
         );
 
-        /** @var $node NodeAbstract */
-        $node = $this->getMockForAbstractClass(
+        $node1 = $this->getMockForAbstractClass(
             'PhpParser\NodeAbstract',
             array(
                 array(
-                    'subNode' => 'value'
+                    'subNode1' => 'value1',
+                    'subNode2' => 'value2',
                 ),
                 $attributes
             ),
             'PhpParser_Node_Dummy'
         );
+        $node1->notSubNode = 'value3';
 
-        $this->assertEquals('Dummy', $node->getType());
-        $this->assertEquals(array('subNode'), $node->getSubNodeNames());
-        $this->assertEquals(10, $node->getLine());
-        $this->assertEquals('/** doc comment */', $node->getDocComment());
-        $this->assertEquals('value', $node->subNode);
-        $this->assertTrue(isset($node->subNode));
-        $this->assertEquals($attributes, $node->getAttributes());
+        $node2 = new DummyNode('value1', 'value2', $attributes);
+        $node2->notSubNode = 'value3';
+
+        return array(
+            array($attributes, $node1),
+            array($attributes, $node2),
+        );
+    }
+
+    /**
+     * @dataProvider provideNodes
+     */
+    public function testConstruct(array $attributes, Node $node) {
+        $this->assertSame('Dummy', $node->getType());
+        $this->assertSame(array('subNode1', 'subNode2'), $node->getSubNodeNames());
+        $this->assertSame(10, $node->getLine());
+        $this->assertSame('/** doc comment */', $node->getDocComment()->getText());
+        $this->assertSame('value1', $node->subNode1);
+        $this->assertSame('value2', $node->subNode2);
+        $this->assertTrue(isset($node->subNode1));
+        $this->assertTrue(isset($node->subNode2));
+        $this->assertFalse(isset($node->subNode3));
+        $this->assertSame($attributes, $node->getAttributes());
 
         return $node;
     }
 
     /**
-     * @depends testConstruct
+     * @dataProvider provideNodes
      */
-    public function testGetDocComment(Node $node) {
-        $this->assertEquals('/** doc comment */', $node->getDocComment());
+    public function testGetDocComment(array $attributes, Node $node) {
+        $this->assertSame('/** doc comment */', $node->getDocComment()->getText());
         array_pop($node->getAttribute('comments')); // remove doc comment
         $this->assertNull($node->getDocComment());
         array_pop($node->getAttribute('comments')); // remove comment
@@ -48,25 +85,50 @@ class NodeAbstractTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @depends testConstruct
+     * @dataProvider provideNodes
      */
-    public function testChange(Node $node) {
+    public function testChange(array $attributes, Node $node) {
         // change of line
         $node->setLine(15);
-        $this->assertEquals(15, $node->getLine());
+        $this->assertSame(15, $node->getLine());
 
         // direct modification
         $node->subNode = 'newValue';
-        $this->assertEquals('newValue', $node->subNode);
+        $this->assertSame('newValue', $node->subNode);
 
         // indirect modification
         $subNode =& $node->subNode;
         $subNode = 'newNewValue';
-        $this->assertEquals('newNewValue', $node->subNode);
+        $this->assertSame('newNewValue', $node->subNode);
 
         // removal
         unset($node->subNode);
         $this->assertFalse(isset($node->subNode));
+    }
+
+    /**
+     * @dataProvider provideNodes
+     */
+    public function testIteration(array $attributes, Node $node) {
+        // Iteration is simple object iteration over properties,
+        // not over subnodes
+        $i = 0;
+        foreach ($node as $key => $value) {
+            if ($i === 0) {
+                $this->assertSame('subNode1', $key);
+                $this->assertSame('value1', $value);
+            } else if ($i === 1) {
+                $this->assertSame('subNode2', $key);
+                $this->assertSame('value2', $value);
+            } else if ($i === 2) {
+                $this->assertSame('notSubNode', $key);
+                $this->assertSame('value3', $value);
+            } else {
+                throw new \Exception;
+            }
+            $i++;
+        }
+        $this->assertSame(3, $i);
     }
 
     public function testAttributes() {
@@ -77,18 +139,18 @@ class NodeAbstractTest extends \PHPUnit_Framework_TestCase
 
         $node->setAttribute('key', 'value');
         $this->assertTrue($node->hasAttribute('key'));
-        $this->assertEquals('value', $node->getAttribute('key'));
+        $this->assertSame('value', $node->getAttribute('key'));
 
         $this->assertFalse($node->hasAttribute('doesNotExist'));
         $this->assertNull($node->getAttribute('doesNotExist'));
-        $this->assertEquals('default', $node->getAttribute('doesNotExist', 'default'));
+        $this->assertSame('default', $node->getAttribute('doesNotExist', 'default'));
 
         $node->setAttribute('null', null);
         $this->assertTrue($node->hasAttribute('null'));
         $this->assertNull($node->getAttribute('null'));
         $this->assertNull($node->getAttribute('null', 'default'));
 
-        $this->assertEquals(
+        $this->assertSame(
             array(
                 'key'  => 'value',
                 'null' => null,

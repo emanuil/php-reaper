@@ -11,14 +11,10 @@ use PhpParser\Node\Stmt;
 
 class NameResolver extends NodeVisitorAbstract
 {
-    /**
-     * @var null|Name Current namespace
-     */
+    /** @var null|Name Current namespace */
     protected $namespace;
 
-    /**
-     * @var array Map of format [aliasType => [aliasName => originalName]]
-     */
+    /** @var array Map of format [aliasType => [aliasName => originalName]] */
     protected $aliases;
 
     public function beforeTraverse(array $nodes) {
@@ -41,7 +37,9 @@ class NameResolver extends NodeVisitorAbstract
                 $interface = $this->resolveClassName($interface);
             }
 
-            $this->addNamespacedName($node);
+            if (null !== $node->name) {
+                $this->addNamespacedName($node);
+            }
         } elseif ($node instanceof Stmt\Interface_) {
             foreach ($node->extends as &$interface) {
                 $interface = $this->resolveClassName($interface);
@@ -52,6 +50,11 @@ class NameResolver extends NodeVisitorAbstract
             $this->addNamespacedName($node);
         } elseif ($node instanceof Stmt\Function_) {
             $this->addNamespacedName($node);
+            $this->resolveSignature($node);
+        } elseif ($node instanceof Stmt\ClassMethod
+                  || $node instanceof Expr\Closure
+        ) {
+            $this->resolveSignature($node);
         } elseif ($node instanceof Stmt\Const_) {
             foreach ($node->consts as $const) {
                 $this->addNamespacedName($const);
@@ -77,10 +80,19 @@ class NameResolver extends NodeVisitorAbstract
             foreach ($node->traits as &$trait) {
                 $trait = $this->resolveClassName($trait);
             }
-        } elseif ($node instanceof Node\Param
-                  && $node->type instanceof Name
-        ) {
-            $node->type = $this->resolveClassName($node->type);
+
+            foreach ($node->adaptations as $adaptation) {
+                if (null !== $adaptation->trait) {
+                    $adaptation->trait = $this->resolveClassName($adaptation->trait);
+                }
+
+                if ($adaptation instanceof Stmt\TraitUseAdaptation\Precedence) {
+                    foreach ($adaptation->insteadof as &$insteadof) {
+                        $insteadof = $this->resolveClassName($insteadof);
+                    }
+                }
+            }
+
         }
     }
 
@@ -120,9 +132,21 @@ class NameResolver extends NodeVisitorAbstract
         $this->aliases[$type][$aliasName] = $use->name;
     }
 
+    /** @param Stmt\Function_|Stmt\ClassMethod|Expr\Closure $node */
+    private function resolveSignature($node) {
+        foreach ($node->params as $param) {
+            if ($param->type instanceof Name) {
+                $param->type = $this->resolveClassName($param->type);
+            }
+        }
+        if ($node->returnType instanceof Name) {
+            $node->returnType = $this->resolveClassName($node->returnType);
+        }
+    }
+
     protected function resolveClassName(Name $name) {
         // don't resolve special class names
-        if (in_array(strtolower($name), array('self', 'parent', 'static'))) {
+        if (in_array(strtolower($name->toString()), array('self', 'parent', 'static'))) {
             if (!$name->isUnqualified()) {
                 throw new Error(
                     sprintf("'\\%s' is an invalid class name", $name->toString()),

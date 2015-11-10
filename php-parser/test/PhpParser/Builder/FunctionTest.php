@@ -2,10 +2,11 @@
 
 namespace PhpParser\Builder;
 
+use PhpParser\Comment;
 use PhpParser\Node;
 use PhpParser\Node\Stmt;
 use PhpParser\Node\Expr\Print_;
-use PhpParser\Node\Scalar\String;
+use PhpParser\Node\Scalar\String_;
 
 class FunctionTest extends \PHPUnit_Framework_TestCase
 {
@@ -47,9 +48,9 @@ class FunctionTest extends \PHPUnit_Framework_TestCase
     }
 
     public function testStmts() {
-        $stmt1 = new Print_(new String('test1'));
-        $stmt2 = new Print_(new String('test2'));
-        $stmt3 = new Print_(new String('test3'));
+        $stmt1 = new Print_(new String_('test1'));
+        $stmt2 = new Print_(new String_('test2'));
+        $stmt3 = new Print_(new String_('test3'));
 
         $node = $this->createFunctionBuilder('test')
             ->addStmt($stmt1)
@@ -63,6 +64,16 @@ class FunctionTest extends \PHPUnit_Framework_TestCase
             )),
             $node
         );
+    }
+
+    public function testDocComment() {
+        $node = $this->createFunctionBuilder('test')
+            ->setDocComment('/** Test */')
+            ->getNode();
+
+        $this->assertEquals(new Stmt\Function_('test', array(), array(
+            'comments' => array(new Comment\Doc('/** Test */'))
+        )), $node);
     }
 
     /**

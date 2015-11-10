@@ -2,36 +2,38 @@
 
 namespace PhpParser\Lexer;
 
+use PhpParser\LexerTest;
 use PhpParser\Parser;
 
-class EmulativeTest extends \PHPUnit_Framework_TestCase
-{
-    /** @var Emulative */
-    protected $lexer;
+require_once __DIR__ . '/../LexerTest.php';
 
-    protected function setUp() {
-        $this->lexer = new Emulative;
+class EmulativeTest extends LexerTest
+{
+    protected function getLexer(array $options = array()) {
+        return new Emulative($options);
     }
 
     /**
      * @dataProvider provideTestReplaceKeywords
      */
     public function testReplaceKeywords($keyword, $expectedToken) {
-        $this->lexer->startLexing('<?php ' . $keyword);
+        $lexer = $this->getLexer();
+        $lexer->startLexing('<?php ' . $keyword);
 
-        $this->assertEquals($expectedToken, $this->lexer->getNextToken());
-        $this->assertEquals(0, $this->lexer->getNextToken());
+        $this->assertSame($expectedToken, $lexer->getNextToken());
+        $this->assertSame(0, $lexer->getNextToken());
     }
 
     /**
      * @dataProvider provideTestReplaceKeywords
      */
     public function testNoReplaceKeywordsAfterObjectOperator($keyword) {
-        $this->lexer->startLexing('<?php ->' . $keyword);
+        $lexer = $this->getLexer();
+        $lexer->startLexing('<?php ->' . $keyword);
 
-        $this->assertEquals(Parser::T_OBJECT_OPERATOR, $this->lexer->getNextToken());
-        $this->assertEquals(Parser::T_STRING, $this->lexer->getNextToken());
-        $this->assertEquals(0, $this->lexer->getNextToken());
+        $this->assertSame(Parser::T_OBJECT_OPERATOR, $lexer->getNextToken());
+        $this->assertSame(Parser::T_STRING, $lexer->getNextToken());
+        $this->assertSame(0, $lexer->getNextToken());
     }
 
     public function provideTestReplaceKeywords() {
@@ -58,14 +60,15 @@ class EmulativeTest extends \PHPUnit_Framework_TestCase
      * @dataProvider provideTestLexNewFeatures
      */
     public function testLexNewFeatures($code, array $expectedTokens) {
-        $this->lexer->startLexing('<?php ' . $code);
+        $lexer = $this->getLexer();
+        $lexer->startLexing('<?php ' . $code);
 
         foreach ($expectedTokens as $expectedToken) {
             list($expectedTokenType, $expectedTokenText) = $expectedToken;
-            $this->assertEquals($expectedTokenType, $this->lexer->getNextToken($text));
-            $this->assertEquals($expectedTokenText, $text);
+            $this->assertSame($expectedTokenType, $lexer->getNextToken($text));
+            $this->assertSame($expectedTokenText, $text);
         }
-        $this->assertEquals(0, $this->lexer->getNextToken());
+        $this->assertSame(0, $lexer->getNextToken());
     }
 
     /**
@@ -73,15 +76,23 @@ class EmulativeTest extends \PHPUnit_Framework_TestCase
      */
     public function testLeaveStuffAloneInStrings($code) {
         $stringifiedToken = '"' . addcslashes($code, '"\\') . '"';
-        $this->lexer->startLexing('<?php ' . $stringifiedToken);
 
-        $this->assertEquals(Parser::T_CONSTANT_ENCAPSED_STRING, $this->lexer->getNextToken($text));
-        $this->assertEquals($stringifiedToken, $text);
-        $this->assertEquals(0, $this->lexer->getNextToken());
+        $lexer = $this->getLexer();
+        $lexer->startLexing('<?php ' . $stringifiedToken);
+
+        $this->assertSame(Parser::T_CONSTANT_ENCAPSED_STRING, $lexer->getNextToken($text));
+        $this->assertSame($stringifiedToken, $text);
+        $this->assertSame(0, $lexer->getNextToken());
     }
 
     public function provideTestLexNewFeatures() {
         return array(
+            array('yield from', array(
+                array(Parser::T_YIELD_FROM, 'yield from'),
+            )),
+            array("yield\r\nfrom", array(
+                array(Parser::T_YIELD_FROM, "yield\r\nfrom"),
+            )),
             array('...', array(
                 array(Parser::T_ELLIPSIS, '...'),
             )),
@@ -90,6 +101,12 @@ class EmulativeTest extends \PHPUnit_Framework_TestCase
             )),
             array('**=', array(
                 array(Parser::T_POW_EQUAL, '**='),
+            )),
+            array('??', array(
+                array(Parser::T_COALESCE, '??'),
+            )),
+            array('<=>', array(
+                array(Parser::T_SPACESHIP, '<=>'),
             )),
             array('0b1010110', array(
                 array(Parser::T_LNUMBER, '0b1010110'),

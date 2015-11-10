@@ -4,8 +4,9 @@ namespace PhpParser\Builder;
 
 use PhpParser\Node;
 use PhpParser\Node\Expr\Print_;
-use PhpParser\Node\Scalar\String;
+use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt;
+use PhpParser\Comment;
 
 class MethodTest extends \PHPUnit_Framework_TestCase
 {
@@ -92,9 +93,9 @@ class MethodTest extends \PHPUnit_Framework_TestCase
     }
 
     public function testStmts() {
-        $stmt1 = new Print_(new String('test1'));
-        $stmt2 = new Print_(new String('test2'));
-        $stmt3 = new Print_(new String('test3'));
+        $stmt1 = new Print_(new String_('test1'));
+        $stmt2 = new Print_(new String_('test2'));
+        $stmt3 = new Print_(new String_('test3'));
 
         $node = $this->createMethodBuilder('test')
             ->addStmt($stmt1)
@@ -109,6 +110,15 @@ class MethodTest extends \PHPUnit_Framework_TestCase
             $node
         );
     }
+    public function testDocComment() {
+        $node = $this->createMethodBuilder('test')
+            ->setDocComment('/** Test */')
+            ->getNode();
+
+        $this->assertEquals(new Stmt\ClassMethod('test', array(), array(
+            'comments' => array(new Comment\Doc('/** Test */'))
+        )), $node);
+    }
 
     /**
      * @expectedException \LogicException
@@ -117,7 +127,7 @@ class MethodTest extends \PHPUnit_Framework_TestCase
     public function testAddStmtToAbstractMethodError() {
         $this->createMethodBuilder('test')
             ->makeAbstract()
-            ->addStmt(new Print_(new String('test')))
+            ->addStmt(new Print_(new String_('test')))
         ;
     }
 
@@ -127,7 +137,7 @@ class MethodTest extends \PHPUnit_Framework_TestCase
      */
     public function testMakeMethodWithStmtsAbstractError() {
         $this->createMethodBuilder('test')
-            ->addStmt(new Print_(new String('test')))
+            ->addStmt(new Print_(new String_('test')))
             ->makeAbstract()
         ;
     }

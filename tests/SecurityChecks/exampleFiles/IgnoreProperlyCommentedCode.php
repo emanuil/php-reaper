@@ -4,7 +4,7 @@ class IgnoreProperlyCommentedCode
 {
     protected $dummy = 'blah';
 
-    function test($tableName, $users) {
+    function singleLineComment($tableName, $users) {
         $clock = time();
         $blah = 1;
 
@@ -21,7 +21,7 @@ class IgnoreProperlyCommentedCode
     }
 
 
-    function secondTest($tableName, $users) {
+    function multipleLinesComment($tableName, $users) {
 
         $sql = "SELECT id FROM" . $tableName . "WHERE role = ?";
         /* no
@@ -31,6 +31,16 @@ class IgnoreProperlyCommentedCode
         $data = Connections::$dbConn->GetRow($sql, array('blah'));
 
         return $data;
+
+
+    }
+
+    function commentBeforeReturnStatement($tableName, $users) {
+
+        $sql = "SELECT id FROM" . $tableName . "WHERE role = ?";
+
+        //safesql
+        return Connections::$dbConn->GetRow($sql, array('blah'));
 
 
     }

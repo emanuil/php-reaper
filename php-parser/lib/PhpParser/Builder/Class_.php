@@ -6,18 +6,18 @@ use PhpParser;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt;
 
-class Class_ extends PhpParser\BuilderAbstract
+class Class_ extends Declaration
 {
     protected $name;
 
-    protected $extends;
-    protected $implements;
-    protected $type;
+    protected $extends = null;
+    protected $implements = array();
+    protected $type = 0;
 
-    protected $uses;
-    protected $constants;
-    protected $properties;
-    protected $methods;
+    protected $uses = array();
+    protected $constants = array();
+    protected $properties = array();
+    protected $methods = array();
 
     /**
      * Creates a class builder.
@@ -26,12 +26,6 @@ class Class_ extends PhpParser\BuilderAbstract
      */
     public function __construct($name) {
         $this->name = $name;
-
-        $this->type = 0;
-        $this->extends = null;
-        $this->implements = array();
-
-        $this->uses = $this->constants = $this->properties = $this->methods = array();
     }
 
     /**
@@ -39,7 +33,7 @@ class Class_ extends PhpParser\BuilderAbstract
      *
      * @param Name|string $class Name of class to extend
      *
-     * @return self The builder instance (for fluid interface)
+     * @return $this The builder instance (for fluid interface)
      */
     public function extend($class) {
         $this->extends = $this->normalizeName($class);
@@ -53,7 +47,7 @@ class Class_ extends PhpParser\BuilderAbstract
      * @param Name|string $interface Name of interface to implement
      * @param Name|string $...       More interfaces to implement
      *
-     * @return self The builder instance (for fluid interface)
+     * @return $this The builder instance (for fluid interface)
      */
     public function implement() {
         foreach (func_get_args() as $interface) {
@@ -66,7 +60,7 @@ class Class_ extends PhpParser\BuilderAbstract
     /**
      * Makes the class abstract.
      *
-     * @return self The builder instance (for fluid interface)
+     * @return $this The builder instance (for fluid interface)
      */
     public function makeAbstract() {
         $this->setModifier(Stmt\Class_::MODIFIER_ABSTRACT);
@@ -77,7 +71,7 @@ class Class_ extends PhpParser\BuilderAbstract
     /**
      * Makes the class final.
      *
-     * @return self The builder instance (for fluid interface)
+     * @return $this The builder instance (for fluid interface)
      */
     public function makeFinal() {
         $this->setModifier(Stmt\Class_::MODIFIER_FINAL);
@@ -90,7 +84,7 @@ class Class_ extends PhpParser\BuilderAbstract
      *
      * @param Stmt|PhpParser\Builder $stmt The statement to add
      *
-     * @return self The builder instance (for fluid interface)
+     * @return $this The builder instance (for fluid interface)
      */
     public function addStmt($stmt) {
         $stmt = $this->normalizeNode($stmt);
@@ -113,21 +107,6 @@ class Class_ extends PhpParser\BuilderAbstract
     }
 
     /**
-     * Adds multiple statements.
-     *
-     * @param array $stmts The statements to add
-     *
-     * @return self The builder instance (for fluid interface)
-     */
-    public function addStmts(array $stmts) {
-        foreach ($stmts as $stmt) {
-            $this->addStmt($stmt);
-        }
-
-        return $this;
-    }
-
-    /**
      * Returns the built class node.
      *
      * @return Stmt\Class_ The built class node
@@ -138,6 +117,6 @@ class Class_ extends PhpParser\BuilderAbstract
             'extends' => $this->extends,
             'implements' => $this->implements,
             'stmts' => array_merge($this->uses, $this->constants, $this->properties, $this->methods),
-        ));
+        ), $this->attributes);
     }
 }

@@ -6,6 +6,7 @@ use PhpParser\Node\Name;
 use PhpParser\Node\Stmt;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Scalar;
+use PhpParser\Comment;
 
 class PropertyTest extends \PHPUnit_Framework_TestCase
 {
@@ -62,6 +63,22 @@ class PropertyTest extends \PHPUnit_Framework_TestCase
         );
     }
 
+    public function testDocComment() {
+        $node = $this->createPropertyBuilder('test')
+            ->setDocComment('/** Test */')
+            ->getNode();
+
+        $this->assertEquals(new Stmt\Property(
+            Stmt\Class_::MODIFIER_PUBLIC,
+            array(
+                new Stmt\PropertyProperty('test')
+            ),
+            array(
+                'comments' => array(new Comment\Doc('/** Test */'))
+            )
+        ), $node);
+    }
+
     /**
      * @dataProvider provideTestDefaultValues
      */
@@ -98,7 +115,7 @@ class PropertyTest extends \PHPUnit_Framework_TestCase
             ),
             array(
                 'Hallo World',
-                new Scalar\String('Hallo World')
+                new Scalar\String_('Hallo World')
             ),
             array(
                 array(1, 2, 3),
@@ -112,12 +129,12 @@ class PropertyTest extends \PHPUnit_Framework_TestCase
                 array('foo' => 'bar', 'bar' => 'foo'),
                 new Expr\Array_(array(
                     new Expr\ArrayItem(
-                        new Scalar\String('bar'),
-                        new Scalar\String('foo')
+                        new Scalar\String_('bar'),
+                        new Scalar\String_('foo')
                     ),
                     new Expr\ArrayItem(
-                        new Scalar\String('foo'),
-                        new Scalar\String('bar')
+                        new Scalar\String_('foo'),
+                        new Scalar\String_('bar')
                     ),
                 ))
             ),

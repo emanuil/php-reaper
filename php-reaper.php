@@ -1,6 +1,6 @@
 <?php
 
-require 'src/SecurityChecks.php';
+require 'SecurityChecks.php';
 
 $options = getopt("d:f:");
 

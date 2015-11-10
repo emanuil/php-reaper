@@ -3,18 +3,32 @@
 namespace PhpParser;
 
 use PhpParser\Builder;
+use PhpParser\Node\Stmt\Use_;
 
 /**
- * "class", "interface" and "function" are reserved keywords, so the methods are defined as _class(),
- * _interface() and _function() in the class and are made available as class(), interface() and function()
- * through __call() magic.
+ * The following methods use reserved keywords, so their implementation is defined with an underscore and made available
+ * with the reserved name through __call() magic.
  *
+ * @method Builder\Namespace_ namespace(string $name) Creates a namespace builder.
  * @method Builder\Class_     class(string $name)     Creates a class builder.
- * @method Builder\Function_  function(string $name)  Creates a function builder
  * @method Builder\Interface_ interface(string $name) Creates an interface builder.
+ * @method Builder\Trait_     trait(string $name)     Creates a trait builder.
+ * @method Builder\Function_  function(string $name)  Creates a function builder.
+ * @method Builder\Use_       use(string $name)       Creates a namespace/class use builder.
  */
 class BuilderFactory
 {
+    /**
+     * Creates a namespace builder.
+     * 
+     * @param null|string|Node\Name $name Name of the namespace
+     *
+     * @return Builder\Namespace_ The created namespace builder
+     */
+    protected function _namespace($name) {
+        return new Builder\Namespace_($name);
+    }
+
     /**
      * Creates a class builder.
      *
@@ -27,7 +41,7 @@ class BuilderFactory
     }
 
     /**
-     * Creates a interface builder.
+     * Creates an interface builder.
      *
      * @param string $name Name of the interface
      *
@@ -35,6 +49,17 @@ class BuilderFactory
      */
     protected function _interface($name) {
         return new Builder\Interface_($name);
+    }
+
+    /**
+     * Creates a trait builder.
+     *
+     * @param string $name Name of the trait
+     *
+     * @return Builder\Trait_ The created trait builder
+     */
+    protected function _trait($name) {
+        return new Builder\Trait_($name);
     }
 
     /**
@@ -79,6 +104,17 @@ class BuilderFactory
      */
     protected function _function($name) {
         return new Builder\Function_($name);
+    }
+
+    /**
+     * Creates a namespace/class use builder.
+     *
+     * @param string|Node\Name Name to alias
+     *
+     * @return Builder\Use_ The create use builder
+     */
+    protected function _use($name) {
+        return new Builder\Use_($name, Use_::TYPE_NORMAL);
     }
 
     public function __call($name, array $args) {

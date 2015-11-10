@@ -2,10 +2,10 @@
 
 namespace PhpParser\Builder;
 
+use PhpParser\Comment;
 use PhpParser\Node;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt;
-use PhpParser\NodeVisitorAbstract;
 
 class ClassTest extends \PHPUnit_Framework_TestCase
 {
@@ -17,6 +17,7 @@ class ClassTest extends \PHPUnit_Framework_TestCase
         $node = $this->createClassBuilder('SomeLogger')
             ->extend('BaseLogger')
             ->implement('Namespaced\Logger', new Name('SomeInterface'))
+            ->implement('\Fully\Qualified', 'namespace\NamespaceRelative')
             ->getNode()
         ;
 
@@ -25,7 +26,9 @@ class ClassTest extends \PHPUnit_Framework_TestCase
                 'extends' => new Name('BaseLogger'),
                 'implements' => array(
                     new Name('Namespaced\Logger'),
-                    new Name('SomeInterface')
+                    new Name('SomeInterface'),
+                    new Name\FullyQualified('Fully\Qualified'),
+                    new Name\Relative('NamespaceRelative'),
                 ),
             )),
             $node
@@ -67,7 +70,7 @@ class ClassTest extends \PHPUnit_Framework_TestCase
             array(new Stmt\PropertyProperty('testProperty'))
         );
         $const = new Stmt\ClassConst(array(
-            new Node\Const_('TEST_CONST', new Node\Scalar\String('ABC'))
+            new Node\Const_('TEST_CONST', new Node\Scalar\String_('ABC'))
         ));
         $use = new Stmt\TraitUse(array(new Name('SomeTrait')));
 
@@ -86,6 +89,39 @@ class ClassTest extends \PHPUnit_Framework_TestCase
         );
     }
 
+    public function testDocComment() {
+        $docComment = <<<'DOC'
+/**
+ * Test
+ */
+DOC;
+        $class = $this->createClassBuilder('Test')
+            ->setDocComment($docComment)
+            ->getNode();
+
+        $this->assertEquals(
+            new Stmt\Class_('Test', array(), array(
+                'comments' => array(
+                    new Comment\Doc($docComment)
+                )
+            )),
+            $class
+        );
+
+        $class = $this->createClassBuilder('Test')
+            ->setDocComment(new Comment\Doc($docComment))
+            ->getNode();
+
+        $this->assertEquals(
+            new Stmt\Class_('Test', array(), array(
+                'comments' => array(
+                    new Comment\Doc($docComment)
+                )
+            )),
+            $class
+        );
+    }
+
     /**
      * @expectedException \LogicException
      * @expectedExceptionMessage Unexpected node of type "Stmt_Echo"
@@ -94,5 +130,32 @@ class ClassTest extends \PHPUnit_Framework_TestCase
         $this->createClassBuilder('Test')
             ->addStmt(new Stmt\Echo_(array()))
         ;
+    }
+
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Doc comment must be a string or an instance of PhpParser\Comment\Doc
+     */
+    public function testInvalidDocComment() {
+        $this->createClassBuilder('Test')
+            ->setDocComment(new Comment('Test'));
+    }
+
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Name cannot be empty
+     */
+    public function testEmptyName() {
+        $this->createClassBuilder('Test')
+            ->extend('');
+    }
+
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage Name must be a string or an instance of PhpParser\Node\Name
+     */
+    public function testInvalidName() {
+        $this->createClassBuilder('Test')
+            ->extend(array('Foo'));
     }
 }

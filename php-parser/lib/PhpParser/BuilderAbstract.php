@@ -6,6 +6,7 @@ use PhpParser\Node\Name;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Stmt;
 use PhpParser\Node\Scalar;
+use PhpParser\Comment;
 
 abstract class BuilderAbstract implements Builder {
     /**
@@ -35,9 +36,21 @@ abstract class BuilderAbstract implements Builder {
     protected function normalizeName($name) {
         if ($name instanceof Name) {
             return $name;
-        } else {
-            return new Name($name);
+        } elseif (is_string($name)) {
+            if (!$name) {
+                throw new \LogicException('Name cannot be empty');
+            }
+
+            if ($name[0] == '\\') {
+                return new Name\FullyQualified(substr($name, 1));
+            } elseif (0 === strpos($name, 'namespace\\')) {
+                return new Name\Relative(substr($name, strlen('namespace\\')));
+            } else {
+                return new Name($name);
+            }
         }
+
+        throw new \LogicException('Name must be a string or an instance of PhpParser\Node\Name');
     }
 
     /**
@@ -64,7 +77,7 @@ abstract class BuilderAbstract implements Builder {
         } elseif (is_float($value)) {
             return new Scalar\DNumber($value);
         } elseif (is_string($value)) {
-            return new Scalar\String($value);
+            return new Scalar\String_($value);
         } elseif (is_array($value)) {
             $items = array();
             $lastKey = -1;
@@ -86,6 +99,23 @@ abstract class BuilderAbstract implements Builder {
             return new Expr\Array_($items);
         } else {
             throw new \LogicException('Invalid value');
+        }
+    }
+
+    /**
+     * Normalizes a doc comment: Converts plain strings to PhpParser\Comment\Doc.
+     *
+     * @param Comment\Doc|string $docComment The doc comment to normalize
+     *
+     * @return Comment\Doc The normalized doc comment
+     */
+    protected function normalizeDocComment($docComment) {
+        if ($docComment instanceof Comment\Doc) {
+            return $docComment;
+        } else if (is_string($docComment)) {
+            return new Comment\Doc($docComment);
+        } else {
+            throw new \LogicException('Doc comment must be a string or an instance of PhpParser\Comment\Doc');
         }
     }
 

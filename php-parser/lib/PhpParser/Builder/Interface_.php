@@ -6,12 +6,12 @@ use PhpParser;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt;
 
-class Interface_ extends PhpParser\BuilderAbstract
+class Interface_ extends Declaration
 {
     protected $name;
-    protected $extends;
-    protected $constants;
-    protected $methods;
+    protected $extends = array();
+    protected $constants = array();
+    protected $methods = array();
 
     /**
      * Creates an interface builder.
@@ -20,8 +20,6 @@ class Interface_ extends PhpParser\BuilderAbstract
      */
     public function __construct($name) {
         $this->name = $name;
-        $this->extends = array();
-        $this->constants = $this->methods = array();
     }
 
     /**
@@ -30,7 +28,7 @@ class Interface_ extends PhpParser\BuilderAbstract
      * @param Name|string $interface Name of interface to extend
      * @param Name|string $...       More interfaces to extend
      *
-     * @return self The builder instance (for fluid interface)
+     * @return $this The builder instance (for fluid interface)
      */
     public function extend() {
         foreach (func_get_args() as $interface) {
@@ -45,7 +43,7 @@ class Interface_ extends PhpParser\BuilderAbstract
      *
      * @param Stmt|PhpParser\Builder $stmt The statement to add
      *
-     * @return self The builder instance (for fluid interface)
+     * @return $this The builder instance (for fluid interface)
      */
     public function addStmt($stmt) {
         $stmt = $this->normalizeNode($stmt);
@@ -70,22 +68,7 @@ class Interface_ extends PhpParser\BuilderAbstract
     }
 
     /**
-     * Adds multiple statements.
-     *
-     * @param array $stmts The statements to add
-     *
-     * @return self The builder instance (for fluid interface)
-     */
-    public function addStmts(array $stmts) {
-        foreach ($stmts as $stmt) {
-            $this->addStmt($stmt);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Returns the built class node.
+     * Returns the built interface node.
      *
      * @return Stmt\Interface_ The built interface node
      */
@@ -93,6 +76,6 @@ class Interface_ extends PhpParser\BuilderAbstract
         return new Stmt\Interface_($this->name, array(
             'extends' => $this->extends,
             'stmts' => array_merge($this->constants, $this->methods),
-        ));
+        ), $this->attributes);
     }
 }

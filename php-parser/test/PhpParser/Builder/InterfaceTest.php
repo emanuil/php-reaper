@@ -5,6 +5,7 @@ namespace PhpParser\Builder;
 use PhpParser\Node;
 use PhpParser\Node\Stmt;
 use PhpParser\Node\Scalar\DNumber;
+use PhpParser\Comment;
 
 class InterfaceTest extends \PHPUnit_Framework_TestCase
 {
@@ -23,7 +24,7 @@ class InterfaceTest extends \PHPUnit_Framework_TestCase
     public function testEmpty() {
         $contract = $this->builder->getNode();
         $this->assertInstanceOf('PhpParser\Node\Stmt\Interface_', $contract);
-        $this->assertEquals('Contract', $contract->name);
+        $this->assertSame('Contract', $contract->name);
     }
 
     public function testExtending() {
@@ -41,15 +42,15 @@ class InterfaceTest extends \PHPUnit_Framework_TestCase
     public function testAddMethod() {
         $method = new Stmt\ClassMethod('doSomething');
         $contract = $this->builder->addStmt($method)->getNode();
-        $this->assertEquals(array($method), $contract->stmts);
+        $this->assertSame(array($method), $contract->stmts);
     }
 
     public function testAddConst() {
         $const = new Stmt\ClassConst(array(
-            new Node\Const_('SPEED_OF_LIGHT', new DNumber(299792458))
+            new Node\Const_('SPEED_OF_LIGHT', new DNumber(299792458.0))
         ));
         $contract = $this->builder->addStmt($const)->getNode();
-        $this->assertEquals(299792458, $contract->stmts[0]->consts[0]->value->value);
+        $this->assertSame(299792458.0, $contract->stmts[0]->consts[0]->value->value);
     }
 
     public function testOrder() {
@@ -65,6 +66,16 @@ class InterfaceTest extends \PHPUnit_Framework_TestCase
 
         $this->assertInstanceOf('PhpParser\Node\Stmt\ClassConst', $contract->stmts[0]);
         $this->assertInstanceOf('PhpParser\Node\Stmt\ClassMethod', $contract->stmts[1]);
+    }
+
+    public function testDocComment() {
+        $node = $this->builder
+            ->setDocComment('/** Test */')
+            ->getNode();
+
+        $this->assertEquals(new Stmt\Interface_('Contract', array(), array(
+            'comments' => array(new Comment\Doc('/** Test */'))
+        )), $node);
     }
 
     /**
