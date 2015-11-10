@@ -87,4 +87,4 @@ dynamic and static analysis cannot reliably tell us the class of the instantiate
 
 PHP Parser
 ==========
-PHP-Reaper is using the excellent php parser with the same name: [PHP-Parser](https://github.com/nikic/PHP-Parser). It currently uses version 1.0.0 beta 2, its stable enough. Soon will switch to the latest stable.
+PHP-Reaper is using the excellent php parser with the same name: [PHP-Parser](https://github.com/nikic/PHP-Parser). It currently uses version 1.4.1.
