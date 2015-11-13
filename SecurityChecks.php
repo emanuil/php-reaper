@@ -163,41 +163,21 @@ class SecurityChecks {
                 return false;
             }
 
-            if ($methodStatement->getType() == 'Expr_MethodCall' && is_string($methodStatement->name) &&
-                in_array(strtolower($methodStatement->name), $this->dangerousFunctions)
-            ) {
+            $methodName = null;
 
+            if ($methodStatement->getType() == 'Expr_MethodCall' && is_string($methodStatement->name)) {
+                $methodName = $methodStatement->name;
                 $objectToBeInvestigated = $methodStatement;
-
-                if(empty($objectToBeInvestigated->args[0])) {
-                    return false;
-                }
-
-                $this->checkTheArgument($methodStatement, $objectToBeInvestigated);
-            }
-
-
-
-            if ($methodStatement->getType() == 'Expr_Assign'
-                && property_exists($methodStatement->expr, 'name')
-                && is_string($methodStatement->expr->name)
-                && in_array(strtolower($methodStatement->expr->name), $this->dangerousFunctions)
-            ) {
-
+            } elseif($methodStatement->getType() == 'Expr_Assign' && property_exists($methodStatement->expr, 'name') && is_string($methodStatement->expr->name)) {
+                $methodName = $methodStatement->expr->name;
                 $objectToBeInvestigated = $methodStatement->expr;
-
-                // this is in case we have a method with the same name as the ADO_DB ones
-                // e.g. execute() and its not called with any arguments
-                // think of a better way how to distinguish between ADO_DB and non ADO_DB methods with
-                // the same name
-                if(empty($objectToBeInvestigated->args[0])) {
-                    return false;
-                }
-
-                $this->checkTheArgument($methodStatement, $objectToBeInvestigated);
             }
 
-
+            if(in_array(strtolower($methodName), $this->dangerousFunctions)) {
+                if(!empty($objectToBeInvestigated->args[0])) {
+                    $this->checkTheArgument($methodStatement, $objectToBeInvestigated);
+                }
+            }
         }
     }
 
@@ -272,10 +252,8 @@ class SecurityChecks {
         if ($argumentType == 'Expr_BinaryOp_Concat') {
             if (
                 // this is a call to the Param() method which is safe
-                (property_exists($objectToBeInvestigated->args[0]->value->left, 'right') && $objectToBeInvestigated->args[0]->value->left->right->getType() == 'Expr_MethodCall' && $objectToBeInvestigated->args[0]->value->left->right->name != 'Param')
-
-                || (property_exists($objectToBeInvestigated->args[0]->value->left, 'right') && $objectToBeInvestigated->args[0]->value->left->right->getType() == 'Expr_ArrayDimFetch')
-
+                //(property_exists($objectToBeInvestigated->args[0]->value->left, 'right') && $objectToBeInvestigated->args[0]->value->left->right->getType() == 'Expr_MethodCall' && $objectToBeInvestigated->args[0]->value->left->right->name != 'Param')
+                (property_exists($objectToBeInvestigated->args[0]->value->left, 'right') && $objectToBeInvestigated->args[0]->value->left->right->getType() == 'Expr_ArrayDimFetch')
                 || ($objectToBeInvestigated->args[0]->value->right->getType() != 'Scalar_String' && $objectToBeInvestigated->args[0]->value->right->getType() != 'Expr_Cast_Int')
 
 
@@ -283,19 +261,12 @@ class SecurityChecks {
                 $this->result[] = $methodStatement->getLine();
             }
 
-            if (property_exists($objectToBeInvestigated->args[0]->value->left, 'right')
-                && $objectToBeInvestigated->args[0]->value->left->right->getType() == 'Expr_Variable') {
 
-                $this->investigateVariable($methodStatement, $objectToBeInvestigated->args[0]->value->left->right->name);
-            }
+            $this->checkIfWeAreInterpolatingWithMethodOtherThanParam($methodStatement, $objectToBeInvestigated);
 
-            if(property_exists($objectToBeInvestigated->args[0]->value->left, 'left') &&
-                property_exists($objectToBeInvestigated->args[0]->value->left->left, 'right') &&
-                $objectToBeInvestigated->args[0]->value->left->left->right->getType() == 'Expr_FuncCall') {
-                if($objectToBeInvestigated->args[0]->value->left->left->right->name->parts[0] != 'date') {
-                    $this->result[] = $methodStatement->getLine();
-                }
-            }
+            $this->checkIfTheInterpolatedVariableIsDangerous($methodStatement, $objectToBeInvestigated);
+
+            $this->checkIfWeAreInterpolatingWithADangerousMethod($methodStatement, $objectToBeInvestigated);
         }
 
         if ($argumentType == 'Scalar_Encapsed') {
@@ -460,6 +431,41 @@ class SecurityChecks {
             exit(-1);
         } else {
             exit(0);
+        }
+    }
+
+
+    private function checkIfWeAreInterpolatingWithADangerousMethod($methodStatement, $objectToBeInvestigated)
+    {
+        if (property_exists($objectToBeInvestigated->args[0]->value->left, 'left') &&
+            property_exists($objectToBeInvestigated->args[0]->value->left->left, 'right') &&
+            $objectToBeInvestigated->args[0]->value->left->left->right->getType() == 'Expr_FuncCall'
+        ) {
+            if ($objectToBeInvestigated->args[0]->value->left->left->right->name->parts[0] != 'date') {
+                $this->result[] = $methodStatement->getLine();
+            }
+        }
+    }
+
+
+    private function checkIfTheInterpolatedVariableIsDangerous($methodStatement, $objectToBeInvestigated)
+    {
+        if (property_exists($objectToBeInvestigated->args[0]->value->left, 'right')
+            && $objectToBeInvestigated->args[0]->value->left->right->getType() == 'Expr_Variable'
+        ) {
+
+            $this->investigateVariable($methodStatement, $objectToBeInvestigated->args[0]->value->left->right->name);
+        }
+    }
+
+    /**
+     * @param $methodStatement
+     * @param $objectToBeInvestigated
+     */
+    private function checkIfWeAreInterpolatingWithMethodOtherThanParam($methodStatement, $objectToBeInvestigated)
+    {
+        if ((property_exists($objectToBeInvestigated->args[0]->value->left, 'right') && $objectToBeInvestigated->args[0]->value->left->right->getType() == 'Expr_MethodCall' && $objectToBeInvestigated->args[0]->value->left->right->name != 'Param')) {
+            $this->result[] = $methodStatement->getLine();
         }
     }
 }

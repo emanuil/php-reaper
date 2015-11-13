@@ -13,7 +13,7 @@
 
     <rule ref="rulesets/codesize.xml/CyclomaticComplexity">
         <properties>
-            <property name="reportLevel" value="10" />
+            <property name="reportLevel" value="11" />
         </properties>
     </rule>
 
@@ -33,9 +33,9 @@
 
 
     <rule ref="rulesets/codesize.xml/TooManyMethods">
-    <properties>
-    <property name="maxmethods" value="20" />
-    </properties>
+        <properties>
+            <property name="maxmethods" value="22" />
+        </properties>
     </rule>
 
 
