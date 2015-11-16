@@ -70,9 +70,9 @@ Exclude from warnings
 You can ignore the warnings by PHP-Reaper, if you're absolutely sure that the code does not contain SQL Injection. Comment the line above the ADOdb function with:
 ```php
 // safesql
-$result_set = $dbConn->getAll('SELECT * FROM ' . Contracts_Contracts::DB_TABLE);
+$result_set = $dbConn->getAll('SELECT * FROM ' . $this->usersTable);
 ```
-You need to be absolutely sure `Contracts_Contracts::DB_TABLE` cannot be controller by an attacker.
+You need to be absolutely sure `$this->usersTable` variable cannot be controller by an attacker.
 
 
 Dangerous ADOdb Methods
