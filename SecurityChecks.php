@@ -221,6 +221,7 @@ class SecurityChecks {
 
         $variable = $this->findVariableByName($this->methodStatements, $argumentName, $methodStatement->getLine());
 
+
         // If we can't find the variable definition in the current method then flag this for manual review
         if (!$variable) {
             $this->result[] = $methodStatement->getLine();
@@ -233,6 +234,7 @@ class SecurityChecks {
         } // this is the Param() binding
         elseif ($variable->expr->getType() == 'Expr_BinaryOp_Concat') {
 
+            $variable = $variable->expr;
             $this->checkConcatMethod($methodStatement, $variable);
 
 
@@ -250,23 +252,10 @@ class SecurityChecks {
 
 
         if ($argumentType == 'Expr_BinaryOp_Concat') {
-            if (
-                // this is a call to the Param() method which is safe
-                //(property_exists($objectToBeInvestigated->args[0]->value->left, 'right') && $objectToBeInvestigated->args[0]->value->left->right->getType() == 'Expr_MethodCall' && $objectToBeInvestigated->args[0]->value->left->right->name != 'Param')
-                (property_exists($objectToBeInvestigated->args[0]->value->left, 'right') && $objectToBeInvestigated->args[0]->value->left->right->getType() == 'Expr_ArrayDimFetch')
-                || ($objectToBeInvestigated->args[0]->value->right->getType() != 'Scalar_String' && $objectToBeInvestigated->args[0]->value->right->getType() != 'Expr_Cast_Int')
 
+            $objectToBeInvestigated = $objectToBeInvestigated->args[0]->value;
+            $this->checkConcatMethod($methodStatement, $objectToBeInvestigated);
 
-            ) {
-                $this->result[] = $methodStatement->getLine();
-            }
-
-
-            $this->checkIfWeAreInterpolatingWithMethodOtherThanParam($methodStatement, $objectToBeInvestigated);
-
-            $this->checkIfTheInterpolatedVariableIsDangerous($methodStatement, $objectToBeInvestigated);
-
-            $this->checkIfWeAreInterpolatingWithADangerousMethod($methodStatement, $objectToBeInvestigated);
         }
 
         if ($argumentType == 'Scalar_Encapsed') {
@@ -358,13 +347,24 @@ class SecurityChecks {
     }
 
 
-    private function checkConcatMethod($methodStatement, $variable)
+    private function checkConcatMethod($methodStatement, $objectToBeInvestigated)
     {
-        if ((property_exists($variable->expr->left, 'right')
-                && $variable->expr->left->right->name != 'Param') || (!property_exists($variable->expr->left, 'right'))
+        if (
+            // this is a call to the Param() method which is safe
+            (property_exists($objectToBeInvestigated->left, 'right') && $objectToBeInvestigated->left->right->getType() == 'Expr_ArrayDimFetch')
+            || ($objectToBeInvestigated->right->getType() != 'Scalar_String' && $objectToBeInvestigated->right->getType() != 'Expr_Cast_Int' && $objectToBeInvestigated->right->getType() != 'Expr_ClassConstFetch')
+
         ) {
             $this->result[] = $methodStatement->getLine();
         }
+
+
+        $this->checkIfWeAreInterpolatingWithMethodOtherThanParam($methodStatement, $objectToBeInvestigated);
+
+        $this->checkIfTheInterpolatedVariableIsDangerous($methodStatement, $objectToBeInvestigated);
+
+        $this->checkIfWeAreInterpolatingWithADangerousMethod($methodStatement, $objectToBeInvestigated);
+
     }
 
 
@@ -437,11 +437,11 @@ class SecurityChecks {
 
     private function checkIfWeAreInterpolatingWithADangerousMethod($methodStatement, $objectToBeInvestigated)
     {
-        if (property_exists($objectToBeInvestigated->args[0]->value->left, 'left') &&
-            property_exists($objectToBeInvestigated->args[0]->value->left->left, 'right') &&
-            $objectToBeInvestigated->args[0]->value->left->left->right->getType() == 'Expr_FuncCall'
+        if (property_exists($objectToBeInvestigated->left, 'left') &&
+            property_exists($objectToBeInvestigated->left->left, 'right') &&
+            $objectToBeInvestigated->left->left->right->getType() == 'Expr_FuncCall'
         ) {
-            if ($objectToBeInvestigated->args[0]->value->left->left->right->name->parts[0] != 'date') {
+            if ($objectToBeInvestigated->left->left->right->name->parts[0] != 'date') {
                 $this->result[] = $methodStatement->getLine();
             }
         }
@@ -450,22 +450,26 @@ class SecurityChecks {
 
     private function checkIfTheInterpolatedVariableIsDangerous($methodStatement, $objectToBeInvestigated)
     {
-        if (property_exists($objectToBeInvestigated->args[0]->value->left, 'right')
-            && $objectToBeInvestigated->args[0]->value->left->right->getType() == 'Expr_Variable'
+        if (property_exists($objectToBeInvestigated->left, 'right')
+            && $objectToBeInvestigated->left->right->getType() == 'Expr_Variable'
         ) {
 
-            $this->investigateVariable($methodStatement, $objectToBeInvestigated->args[0]->value->left->right->name);
+            $this->investigateVariable($methodStatement, $objectToBeInvestigated->left->right->name);
         }
     }
 
-    /**
-     * @param $methodStatement
-     * @param $objectToBeInvestigated
-     */
+
     private function checkIfWeAreInterpolatingWithMethodOtherThanParam($methodStatement, $objectToBeInvestigated)
     {
-        if ((property_exists($objectToBeInvestigated->args[0]->value->left, 'right') && $objectToBeInvestigated->args[0]->value->left->right->getType() == 'Expr_MethodCall' && $objectToBeInvestigated->args[0]->value->left->right->name != 'Param')) {
-            $this->result[] = $methodStatement->getLine();
+        if(property_exists($objectToBeInvestigated->left, 'right')) {
+            if($objectToBeInvestigated->left->right->getType() == 'Expr_MethodCall' && $objectToBeInvestigated->left->right->name != 'Param') {
+                $this->result[] = $methodStatement->getLine();
+            }
+
+            if($objectToBeInvestigated->left->right->getType() == 'Expr_FuncCall') {
+                $this->result[] = $methodStatement->getLine();
+            }
         }
+
     }
 }

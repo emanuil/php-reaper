@@ -5,6 +5,10 @@ require_once '../SecurityChecks.php';
 
 class CheckFileTest extends PHPUnit_Framework_TestCase {
 
+
+    // In the expected result, the index in the array specifies the line on which
+    // a potential SQL injection is detected (the file is the argument passed to checkFile() method)
+
     function testStringInterpolationWithoutBracesInArgument() {
         $checks = new SecurityChecks();
 
@@ -192,5 +196,14 @@ class CheckFileTest extends PHPUnit_Framework_TestCase {
         $result = $checks->checkFile('SecurityChecks/exampleFiles/SQLQueryNotInAClass.php');
 
         $this->assertEquals($result, array(6));
+    }
+
+    function testInterpolatingClassConstant() {
+
+        $checks = new SecurityChecks();
+
+        $result = $checks->checkFile('SecurityChecks/exampleFiles/IgnoreSQLQueryThenInterpolationIsDoneWithAConstant.php');
+
+        $this->assertEquals($result, array(26));
     }
 }
