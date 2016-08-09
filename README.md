@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/emanuil/php-reaper.svg?branch=master)](https://travis-ci.org/emanuil/php-reaper)
+
 PHP-Reaper
 ==========
 PHP tool to scan [ADOdb](http://adodb.sourceforge.net) code for SQL Injections
